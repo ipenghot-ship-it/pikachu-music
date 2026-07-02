@@ -9,10 +9,12 @@ dist/
 web-build/
 expo-env.d.ts
 
-# canvaskit-wasm：从 node_modules/canvaskit-wasm/bin/full/canvaskit.wasm 复制到 public/ 给 web 用
-# dev / build 时由 public/ 静态服务，提交进 git 会让 repo 多 8MB
-# 需要重新生成就: cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm public/canvaskit.wasm
-public/canvaskit.wasm
+# canvaskit-wasm：本地 dev 时由 node_modules/canvaskit-wasm 提供，**必须**进 git
+# 否则 `expo export --platform web` 产物里没有这个 wasm，Tauri WebView 拉不到 /canvaskit.wasm
+# CanvasKit init 失败 → Skia Canvas 渲染成黑色蒙版盖全屏
+# 若 canvaskit-wasm 升级到不同版本，重新 cp 后提交即可：
+#   cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm public/canvaskit.wasm
+# public/canvaskit.wasm  ← 不再忽略
 
 # Legacy code backup (cloned from a webpage before this project was rewritten as React Native)
 # Keep local-only for reference; not pushed to GitHub. Delete after project stabilizes.
