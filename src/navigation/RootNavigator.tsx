@@ -30,12 +30,24 @@ export default function RootNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
+          // 布局属性全部 inline —— Tauri WebView2 下 flex 类不可靠
           backgroundColor: colors.bgElevated,
           borderTopColor: colors.border,
           borderTopWidth: 1,
           height: 60,
           paddingBottom: 6,
           paddingTop: 6,
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+        },
+        tabBarItemStyle: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 1,
         },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,

@@ -11,7 +11,7 @@
  *   实现自定义标题栏，纯 web/移动端无影响（isTauri() false 时不渲染）
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Image, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n/I18nProvider';
 import { useSettingsStore } from '../../state/settingsStore';
@@ -58,29 +58,79 @@ export default function Header({ title, onShortcuts, onSettings }: HeaderProps) 
 
   return (
     <View
-      style={[styles.bar, { paddingTop: insets.top + 8 }]}
+      // 关键：flex 布局用 inline style，不能走 StyleSheet.create
+      // Tauri WebView2 下 react-native-web 编出的 .r-* 类注入不可靠
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.md,
+        paddingBottom: spacing.sm,
+        backgroundColor: colors.bgElevated,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        paddingTop: insets.top + 8,
+      }}
       // Tauri 2：data-tauri-drag-region 让此 View 成为 OS 级拖动区
       // react-native-web 用 dataSet 转成 data-* 属性
       {...(tauri ? { dataSet: { 'tauri-drag-region': '' } } : {})}
     >
       {/* 左侧：logo + 标题（拖动区已通过 data 属性覆盖整个 bar） */}
-      <View style={styles.left}>
-        <Animated.View style={[styles.logoBox, breathStyle]}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          flexShrink: 1,
+        }}
+      >
+        <Animated.View
+          style={[
+            {
+              width: 36, height: 36, borderRadius: 18,
+              backgroundColor: colors.accent,
+              alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+            },
+            breathStyle,
+          ]}
+        >
           <Image
             source={require('../../../assets/pikachu.gif')}
-            style={styles.pikachu}
+            style={{ width: 32, height: 32 }}
             resizeMode="contain"
           />
         </Animated.View>
         <View>
-          <Text style={styles.title}>{t('appTitle')}</Text>
-          {title ? <Text style={styles.subtitle}>{title}</Text> : null}
+          <Text style={{ color: colors.textPrimary, fontSize: fontSize.md, fontWeight: '700' }}>
+            {t('appTitle')}
+          </Text>
+          {title ? (
+            <Text style={{ color: colors.textMuted, fontSize: fontSize.xs }}>
+              {title}
+            </Text>
+          ) : null}
         </View>
       </View>
 
       {/* 右侧：语言切换 + 快捷键 + 设置 + 窗口控件（仅 Tauri） */}
-      <View style={styles.right}>
-        <View style={styles.langSwitch}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.xs,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: colors.bg,
+            borderRadius: radius.full,
+            padding: 2,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
           <LangBtn label="中" active={lang === 'zh'} onPress={() => setLang('zh')} />
           <LangBtn label="EN" active={lang === 'en'} onPress={() => setLang('en')} />
         </View>
@@ -129,27 +179,55 @@ function WindowControls() {
   if (!mod) return null;
 
   return (
-    <View style={styles.windowCtrls}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: spacing.xs,
+        gap: 2,
+      }}
+    >
       <Pressable
         onPress={() => mod.minimize().catch(noop)}
         hitSlop={6}
-        style={({ pressed }) => [styles.winBtn, pressed && styles.winBtnPressed]}
+        style={({ pressed }) => [
+          {
+            width: 32, height: 28,
+            alignItems: 'center', justifyContent: 'center',
+            borderRadius: 4,
+          },
+          pressed && { backgroundColor: colors.bg },
+        ]}
       >
-        <Text style={styles.winBtnIcon}>─</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 14, lineHeight: 16 }}>─</Text>
       </Pressable>
       <Pressable
         onPress={() => mod.toggleMaximize().catch(noop)}
         hitSlop={6}
-        style={({ pressed }) => [styles.winBtn, pressed && styles.winBtnPressed]}
+        style={({ pressed }) => [
+          {
+            width: 32, height: 28,
+            alignItems: 'center', justifyContent: 'center',
+            borderRadius: 4,
+          },
+          pressed && { backgroundColor: colors.bg },
+        ]}
       >
-        <Text style={styles.winBtnIcon}>□</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 14, lineHeight: 16 }}>□</Text>
       </Pressable>
       <Pressable
         onPress={() => mod.close().catch(noop)}
         hitSlop={6}
-        style={({ pressed }) => [styles.winBtn, styles.winBtnClose, pressed && styles.winBtnPressed]}
+        style={({ pressed }) => [
+          {
+            width: 32, height: 28,
+            alignItems: 'center', justifyContent: 'center',
+            borderRadius: 4,
+          },
+          pressed && { backgroundColor: colors.bg },
+        ]}
       >
-        <Text style={styles.winBtnIcon}>✕</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 14, lineHeight: 16 }}>✕</Text>
       </Pressable>
     </View>
   );
@@ -161,8 +239,30 @@ function LangBtn({ label, active, onPress }: { label: string; active: boolean; o
   const { animatedStyle, onPressIn, onPressOut } = useAnimatedPress();
   return (
     <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} hitSlop={4}>
-      <Animated.View style={[styles.langBtn, active && styles.langBtnActive, animatedStyle]}>
-        <Text style={[styles.langText, active && styles.langTextActive]}>{label}</Text>
+      <Animated.View
+        style={[
+          {
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 2,
+            borderRadius: radius.full,
+            minWidth: 28,
+            alignItems: 'center',
+          },
+          active && { backgroundColor: colors.accent },
+          animatedStyle,
+        ]}
+      >
+        <Text
+          style={[
+            {
+              fontSize: fontSize.xs,
+              fontWeight: '600',
+              color: active ? colors.bg : colors.textMuted,
+            },
+          ]}
+        >
+          {label}
+        </Text>
       </Animated.View>
     </Pressable>
   );
@@ -172,110 +272,22 @@ function IconBtn({ icon, onPress }: { icon: string; onPress: () => void }) {
   const { animatedStyle, onPressIn, onPressOut } = useAnimatedPress();
   return (
     <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} hitSlop={4}>
-      <Animated.View style={[styles.iconBtn, animatedStyle]}>
-        <Text style={styles.iconText}>{icon}</Text>
+      <Animated.View
+        style={[
+          {
+            width: 36, height: 36, borderRadius: 18,
+            backgroundColor: colors.accentSoft,
+            alignItems: 'center', justifyContent: 'center',
+            borderWidth: 1, borderColor: colors.accent,
+          },
+          animatedStyle,
+        ]}
+      >
+        <Text style={{ fontSize: 18, color: colors.accent }}>{icon}</Text>
       </Animated.View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.bgElevated,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexShrink: 1,
-  },
-  logoBox: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  pikachu: {
-    width: 32, height: 32,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: fontSize.md,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: fontSize.xs,
-  },
-  right: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  langSwitch: {
-    flexDirection: 'row',
-    backgroundColor: colors.bg,
-    borderRadius: radius.full,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  langBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-    minWidth: 28,
-    alignItems: 'center',
-  },
-  langBtnActive: {
-    backgroundColor: colors.accent,
-  },
-  langText: {
-    color: colors.textMuted,
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  langTextActive: {
-    color: colors.bg,
-  },
-  iconBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.accent,
-  },
-  iconText: {
-    // v25 修复：原本没设 color，在深色背景下 emoji 默认黑色看不清
-    fontSize: 18,
-    color: colors.accent,
-  },
-  windowCtrls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: spacing.xs,
-    gap: 2,
-  },
-  winBtn: {
-    width: 32, height: 28,
-    alignItems: 'center', justifyContent: 'center',
-    borderRadius: 4,
-  },
-  winBtnPressed: {
-    backgroundColor: colors.bg,
-  },
-  winBtnClose: {
-    // 关闭按钮 hover/active 用红色（按下时变深红，平时透明）
-  },
-  winBtnIcon: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 16,
-  },
-});
+// 注意：原本的 StyleSheet.create() 块已删除 —— Tauri WebView2 下 flex 类不可靠，
+// 所有 layout (flex, flexDirection, alignItems, justifyContent, gap) 必须用 inline style

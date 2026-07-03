@@ -81,12 +81,23 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View
+        style={{
+          flex: 1,
+          // 关键：flex/display 这些布局属性必须 inline，不能走 className
+          // Tauri WebView2 下 react-native-web 的 CSSStyleSheet.insertRule 不可靠，
+          // StyleSheet.create() 编出的 flex 类注入失败导致 flex 布局整体崩成 block
+          flexDirection: 'column',
+          backgroundColor: colors.bg,
+        }}
+      >
         {/* Skia 粒子背景：zIndex -1 不阻挡事件；ErrorBoundary 包住防止 canvaskit / Skia 渲染失败把整页黑屏 */}
         <ErrorBoundary>
           <BackgroundParticles />
         </ErrorBoundary>
-        <SafeAreaProvider>
+        <SafeAreaProvider
+          style={{ flex: 1, flexDirection: 'column' }}
+        >
           <I18nProvider>
             <NavigationContainer
               ref={navigationRef as any}
