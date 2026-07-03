@@ -23,11 +23,15 @@ import CanvasKitInit from 'canvaskit-wasm/bin/full/canvaskit';
 /**
  * Tauri Windows WebView2 (Edge Chromium) 下 CSSStyleSheet.insertRule 静默失败。
  * react-native-web 把 flex / position / display 这些布局属性全部编成 atomic class
- * 通过 insertRule 注入 stylesheet —— insertRule 失败 → className 在元素上但 CSS 规则没进 stylesheet
- * → 整个 app 布局退化到 block 流式竖排（用户截图症状："中"按钮横铺全宽 / 底部 tab 只剩 1 个图标）。
+ * 通过 insertRule 注入 stylesheet —— insertRule 不生效（无论抛错还是静默）→ className
+ * 在元素上但 CSS 规则没进 stylesheet → 整个 app 布局退化到 block 流式竖排
+ * （用户截图症状："中"按钮横铺全宽 / 底部 tab 只剩 1 个图标）。
  *
- * 兜底方案：在原始 insertRule 上包一层，如果抛错就把 cssText 同步写到 ownerNode.textContent，
- * 这样 <style> 元素的 standard textContent 路径就能让浏览器正常解析 CSS。
+ * 兜底方案：包一层 insertRule，无脑同步把 cssText 写到 ownerNode.textContent，
+ * 让浏览器走标准的 <style> textContent 解析路径（不依赖 CSSStyleSheet API）。
+ *
+ * 副作用：textContent 和 sheet 都有同一规则 → 重复。但浏览器解析 CSS 时相同选择器
+ * 后定义覆盖前定义，重复规则无害。
  */
 function patchInsertRule() {
   if (typeof CSSStyleSheet === 'undefined') return;
@@ -37,21 +41,21 @@ function patchInsertRule() {
 
   const origInsert = proto.insertRule;
   proto.insertRule = function patchedInsertRule(rule: string, index?: number): number {
+    // 无脑同步把规则写到 <style> 元素的 textContent —— 浏览器会按文本解析
+    const ownerNode = (this as any).ownerNode as HTMLElement | null;
+    if (ownerNode && ownerNode.tagName === 'STYLE') {
+      const existing = ownerNode.textContent || '';
+      const sep = existing && !existing.endsWith('\n') ? '\n' : '';
+      ownerNode.textContent = existing + sep + rule;
+    }
+    // 同时仍调用原 insertRule，期望在能正常工作的浏览器（Chrome dev）下走 CSSOM 路径
     try {
       return origInsert.call(this, rule, index);
     } catch (e) {
-      // insertRule 失败（Edge/Tauri CSP 或其他限制）→ 写到 <style> 元素的 textContent 兜底
-      const ownerNode = (this as any).ownerNode as HTMLElement | null;
-      if (ownerNode && ownerNode.tagName === 'STYLE') {
-        const existing = ownerNode.textContent || '';
-        const sep = existing && !existing.endsWith('\n') ? '\n' : '';
-        ownerNode.textContent = existing + sep + rule;
-      }
+      // 静默抛错也没关系 —— textContent 已经兜底
       return -1;
     }
   };
-
-  // deleteRule / insertRule 也会被 RN-Web 用到，deleteRule 失败一般不影响布局，跳过
 }
 
 patchInsertRule();
