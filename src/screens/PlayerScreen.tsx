@@ -36,6 +36,7 @@ import { downloadTrackToLocal, shareSavedFile, guessMimeFromExt } from '../api/d
 import { colors, fontSize, spacing, radius, globalStyles } from '../theme';
 import { sourceKey } from '../utils/platforms';
 import { LyricLine as LyricLineNew, LyricsParticleFx } from '../components/lyrics';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -272,13 +273,15 @@ function LyricScroller({ currentLineIdx, mode, onSeek }: {
         );
       }}
     >
-      {/* particles 模式：Skia 粒子背景层（absolute + pointerEvents none） */}
+      {/* particles 模式：Skia 粒子背景层（absolute + pointerEvents none + opaque=false 不画黑色蒙版） */}
       {mode === 'particles' && (
-        <LyricsParticleFx
-          currentLineIdx={currentLineIdx}
-          width={containerSize?.width}
-          height={containerSize?.height}
-        />
+        <ErrorBoundary>
+          <LyricsParticleFx
+            currentLineIdx={currentLineIdx}
+            width={containerSize?.width}
+            height={containerSize?.height}
+          />
+        </ErrorBoundary>
       )}
       {/* 歌词 FlatList 在粒子层之上 */}
       <FlatList

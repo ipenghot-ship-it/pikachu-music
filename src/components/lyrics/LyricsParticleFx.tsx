@@ -61,7 +61,11 @@ export function LyricsParticleFx({ currentLineIdx, width, height }: Props) {
   const cy = height ? height / 2 : 150;
 
   return (
-    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+    /*
+     * opaque={false} 让 Skia web Canvas 不画不透明黑色 surface，
+     * 否则粒子背景会变成黑色蒙版盖住歌词文本
+     */
+    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none" opaque={false}>
       <Group>
         {particles.map((p, i) => (
           <Particle key={i} p={p} tick={tick} cx={cx} cy={cy} />

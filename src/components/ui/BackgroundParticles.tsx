@@ -98,8 +98,13 @@ export default function BackgroundParticles() {
   }, true);
 
   return (
-    <View style={[styles.container, { pointerEvents: 'none' }]}>
-      <Canvas style={StyleSheet.absoluteFill}>
+    <View style={[styles.container, { pointerEvents: 'none', zIndex: -1 }]}>
+      {/*
+        opaque={false} 让 Skia Canvas 在 web 上不画不透明黑色 surface
+        （默认 opaque=true 时，HTML5 <canvas> 的清屏色是不透明黑色，会盖住下层 UI）
+        zIndex 通过 inline style 显式设到 -1，不依赖 react-native-web 的 className 解析顺序
+      */}
+      <Canvas style={StyleSheet.absoluteFill} opaque={false}>
         <Group>
           {particles.map((p, i) => (
             <ParticleDot
@@ -158,6 +163,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: -1,
+    // zIndex 放到 inline style 里，避免依赖 react-native-web 把 zIndex 编译成 className 的顺序
+    // 实际值见组件 JSX 的 style 数组
   },
 });

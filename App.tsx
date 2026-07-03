@@ -18,6 +18,7 @@ import { navigationRef } from './src/navigation/navRef';
 import RootNavigator from './src/navigation/RootNavigator';
 import { I18nProvider } from './src/i18n/I18nProvider';
 import BackgroundParticles from './src/components/ui/BackgroundParticles';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { colors } from './src/theme';
 import { ensureLocalBackend, addBackendListener } from './src/api/backend';
 import SettingsPanel from './src/screens/SettingsPanel';
@@ -81,8 +82,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        {/* Skia 粒子背景：zIndex -1 不阻挡事件 */}
-        <BackgroundParticles />
+        {/* Skia 粒子背景：zIndex -1 不阻挡事件；ErrorBoundary 包住防止 canvaskit / Skia 渲染失败把整页黑屏 */}
+        <ErrorBoundary>
+          <BackgroundParticles />
+        </ErrorBoundary>
         <SafeAreaProvider>
           <I18nProvider>
             <NavigationContainer
